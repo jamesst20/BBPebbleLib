@@ -32,6 +32,7 @@ public:
     void notifyFacebook(const QString &sender, const QString &body) const;
     void notifyTwitter(const QString &sender, const QString &body) const;
     void notifyPhoneCallStart(bool incoming, const QString &number, const QString &name, quint32 cookie = 0) const;
+    void notifyPhoneCallEnd(quint32 cookie = 0) const;
 
 signals:
     void dataReadFinished(quint16 endPoint, const QByteArray &payload);

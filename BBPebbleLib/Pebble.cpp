@@ -171,3 +171,14 @@ void Pebble::notifyPhoneCallStart(bool incoming, const QString &number, const QS
         sendDataToPebble(Enums::Endpoint::PhoneControl, notifArray);
     }
 }
+
+void Pebble::notifyPhoneCallEnd(quint32 cookie) const {
+    QByteArray notifArray;
+
+    QDataStream in(&notifArray, QIODevice::WriteOnly);
+
+    in << Enums::PhoneControlCommands::END;
+    in << cookie;
+
+    sendDataToPebble(Enums::Endpoint::PhoneControl, notifArray);
+}
