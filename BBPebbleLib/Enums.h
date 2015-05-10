@@ -80,6 +80,18 @@ namespace Enums
         static const quint16 MaxEndpoint = 65535; //quint16 max value
     }
 
+    namespace PhoneControlCommands {
+        static const quint8 ANSWER = 1;
+        static const quint8 HANGUP = 2;
+        static const quint8 GET_STATE = 3;
+        static const quint8 INCOMING_CALL = 4;
+        static const quint8 OUTGOING_CALL = 5;
+        static const quint8 MISSED_CALL = 6;
+        static const quint8 RING = 7;
+        static const quint8 START = 8;
+        static const quint8 END = 9;
+    }
+
     namespace LogLevel { //PORTED FROM C# and TYPE WASN'T DEFINED. ASSUMED TO INT32
         static const quint32 Unknown = -1;
         static const quint32 All = 0;

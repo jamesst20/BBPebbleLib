@@ -75,7 +75,7 @@ void Pebble::onDataReadFinished(quint16 endPoint, const QByteArray &payload){
         dataStream << (quint32) (Enums::Client::SMS | Enums::Client::TELEPHONY | Enums::Client::ANDROID);
 
         sendDataToPebble(Enums::Endpoint::PhoneVersion, payloadToSend);
-        //pebbleReady = true;
+        pebbleReady = true;
         qDebug() << "Phone version asked, just replied. But does it really work?";
 
     }
@@ -143,6 +143,31 @@ void Pebble::sendNotification(quint8 type, const QStringList &strings) const {
         in.writeRawData(strings.at(i).toStdString().c_str(), strings.at(i).size());
     }
 
-    qDebug() << "Notification array : " << notificationArray.toHex();
     sendDataToPebble(Enums::Endpoint::Notification, notificationArray);
+}
+
+void Pebble::notifyPhoneCallStart(bool incoming, const QString &number, const QString &name, quint32 cookie) const {
+    QByteArray notifArray;
+
+    QDataStream in(&notifArray, QIODevice::WriteOnly);
+
+    in << Enums::PhoneControlCommands::INCOMING_CALL;
+    in << cookie;
+    in << (quint8)number.size();
+    in.writeRawData(number.toStdString().c_str(), number.size());
+    in << (quint8)name.size();
+    in.writeRawData(name.toStdString().c_str(), name.size());
+
+    sendDataToPebble(Enums::Endpoint::PhoneControl, notifArray);
+
+    //HACK : Pebble isn't supporting OUTGOING_CALL. What can be done is sending call start immediatly after incoming call.
+    if(!incoming){
+        notifArray.clear();
+
+        in.device()->seek(0);
+        in << Enums::PhoneControlCommands::START;
+        in << cookie;
+
+        sendDataToPebble(Enums::Endpoint::PhoneControl, notifArray);
+    }
 }
