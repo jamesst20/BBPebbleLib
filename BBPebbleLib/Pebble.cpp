@@ -107,6 +107,9 @@ void Pebble::sendDataToPebble(quint16 endPoint, const QByteArray &payload) const
     in << (quint16)endPoint;
     finalData.append(payload);
     in.setByteOrder(QDataStream::BigEndian);
+
+    qDebug() << ">>>> sent data. Endpoint : " << endPoint << " Payload Size : " << payload.size() << " HEX : " << payload.toHex() << "STR : " << QString(payload);
+
     this->bt_device->sendData(finalData);
 }
 
