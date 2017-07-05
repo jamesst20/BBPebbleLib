@@ -15,3 +15,12 @@ I am expecting (hopefully) to not be the only one to contribute to this project 
 * Get information of an application
 * Displaying Weather on a watchface
 * Much much much more
+
+### Related Work
+Thanks to all the other projects which achieved communication with the Pebble watch and inspired/helped this project, namely:
+* https://github.com/smokku/pebble
+* https://github.com/Hexxeh/libpebble
+* https://github.com/pebble/libpebble2
+* https://github.com/Keboo/PebbleSharp
+* https://github.com/DouweM/pebblewatch
+* https://github.com/barometz/flint
