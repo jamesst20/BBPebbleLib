@@ -67,17 +67,40 @@ void Pebble::onDataReceived(QBluetoothSocket &bt_socket)
 
 void Pebble::onDataReadFinished(quint16 endPoint, const QByteArray &payload){
     //PhoneVersion is received immediatly after connecting to Pebble. We must respond to it first.
-    if(!pebbleReady && endPoint == Enums::Endpoint::PhoneVersion){
-        QByteArray payloadToSend;
-        QDataStream dataStream(&payloadToSend, QIODevice::WriteOnly);
-        dataStream << (quint8)PEBBLE_CLIENT_VERSION << (quint8)0xFF << (quint8)0xFF << (quint8)0xFF << (quint8)0xFF;
-        dataStream << (quint32) Enums::Session::GAMMA_RAY;
-        dataStream << (quint32) (Enums::Client::SMS | Enums::Client::TELEPHONY | Enums::Client::ANDROID);
+    if(!pebbleReady && endPoint == Enums::Endpoint::PhoneVersion) {
+        unsigned int sessionCap = Enums::Session::GAMMA_RAY;
+        unsigned int remoteCap = Enums::Client::TELEPHONY | Enums::Client::SMS | Enums::Client::ANDROID;
+        QByteArray res;
 
-        sendDataToPebble(Enums::Endpoint::PhoneVersion, payloadToSend);
+        //Prefix
+        res.append(0x01);
+        res.append(0xff);
+        res.append(0xff);
+        res.append(0xff);
+        res.append(0xff);
+
+        //Session Capabilities
+        res.append((char)((sessionCap >> 24) & 0xff));
+        res.append((char)((sessionCap >> 16) & 0xff));
+        res.append((char)((sessionCap >> 8) & 0xff));
+        res.append((char)(sessionCap & 0xff));
+
+        //Remote Capabilities
+        res.append((char)((remoteCap >> 24) & 0xff));
+        res.append((char)((remoteCap >> 16) & 0xff));
+        res.append((char)((remoteCap >> 8) & 0xff));
+        res.append((char)(remoteCap & 0xff));
+
+        //Version Magic
+        res.append((char)0x02);
+
+        //Append Version
+        res.append((char)0x02); //Major
+        res.append((char)0x00); //Minor
+        res.append((char)0x00); //Bugfix
+
+        sendDataToPebble(Enums::Endpoint::PhoneVersion, res);
         pebbleReady = true;
-        qDebug() << "Phone version asked, just replied. But does it really work?";
-
     }
 }
 
