@@ -5,6 +5,8 @@
  *      Author: James
  */
 
+#include <QtEndian>
+
 #include "Pebble.h"
 
 const quint8 Pebble::PEBBLE_CLIENT_VERSION = 2;
@@ -38,31 +40,48 @@ void Pebble::onDisconnect()
 
 void Pebble::onDataReceived(QBluetoothSocket &bt_socket)
 {
-    QDataStream in(&bt_socket);
+    static const int header_length = (int)2*sizeof(quint16);
 
-    if (this->payloadSize == 0) {
-        if (bt_socket.bytesAvailable() < (int)2*sizeof(quint16)) {
+    while (bt_socket.bytesAvailable() >= header_length) {
+        // Take a look at the header, but do not remove it from the socket input buffer.
+        // We will only remove it once we're sure the entire packet is in the buffer.
+        uchar header[header_length];
+        bt_socket.peek(reinterpret_cast<char*>(header), header_length);
+
+        quint16 message_length = qFromBigEndian<quint16>(&header[0]);
+        quint16 endpoint = qFromBigEndian<quint16>(&header[2]);
+
+        // Sanity checks on the message_length
+        if (message_length == 0) {
+            qDebug() << "received empty message";
+            bt_socket.read(header_length); // skip this header
+            continue; // check if there are additional headers.
+        } else if (message_length > 8 * 1024) {
+            // Protocol does not allow messages more than 8K long, seemingly.
+            qDebug() << "received message size too long: " << message_length;
+            bt_socket.readAll(); // drop entire input buffer
             return;
         }
-        in >> this->payloadSize;
-        in >> this->endPoint;
+
+        // Now wait for the entire message
+        if (bt_socket.bytesAvailable() < header_length + message_length) {
+            qDebug() << "incomplete msg body in read buffer";
+            return; // try again once more data comes in
+        }
+
+        // We can now safely remove the header from the input buffer,
+        // as we know the entire message is in the input buffer.
+        bt_socket.read(header_length);
+
+        // Now read the rest of the message
+        QByteArray data = bt_socket.read(message_length);
+
+        qDebug() << "<<<< received data. Endpoint : " << endpoint << " Payload Size : " << data.size() << " HEX : " << data.toHex() << "STR : " << QString(data);
+
+        emit onDataReadFinished(endpoint, data);
+
+        onDataReceived(bt_socket);
     }
-
-    if(bt_socket.bytesAvailable() < this->payloadSize){
-        return;
-    }
-    char buffer[this->payloadSize];
-    in.readRawData(buffer, this->payloadSize);
-    QByteArray payload(buffer);
-
-    qDebug() << "Received data. Endpoint : " << endPoint << " Payload Size : " << payloadSize << " HEX : " << payload.toHex() << "STR : " << QString(payload);
-
-    emit onDataReadFinished(endPoint, payload);
-
-    this->payloadSize = 0;
-    this->endPoint = 0;
-
-    onDataReceived(bt_socket);
 }
 
 void Pebble::onDataReadFinished(quint16 endPoint, const QByteArray &payload){
@@ -88,6 +107,9 @@ void Pebble::sendDataToPebble(quint16 endPoint, const QByteArray &payload) const
     in << (quint16)endPoint;
     finalData.append(payload);
     in.setByteOrder(QDataStream::BigEndian);
+
+    qDebug() << ">>>> sent data. Endpoint : " << endPoint << " Payload Size : " << payload.size() << " HEX : " << payload.toHex() << "STR : " << QString(payload);
+
     this->bt_device->sendData(finalData);
 }
 
