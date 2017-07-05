@@ -168,6 +168,14 @@ void Pebble::notifyTwitter(const QString &sender, const QString &body) const {
     sendNotification(Enums::Notifications::Twitter, strings);
 }
 
+void Pebble::sendNewNotification() const
+{
+    QByteArray notificationArray;
+    QDataStream in(&notificationArray, QIODevice::WriteOnly);
+
+    sendDataToPebble(Enums::Endpoint::Notification, notificationArray);
+}
+
 void Pebble::sendNotification(quint8 type, const QStringList &strings) const {
     QByteArray notificationArray;
     QDataStream in(&notificationArray, QIODevice::WriteOnly);
