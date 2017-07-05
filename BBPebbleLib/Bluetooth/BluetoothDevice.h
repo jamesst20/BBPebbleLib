@@ -32,10 +32,13 @@ class BluetoothDevice: public QObject
     Q_OBJECT
 public:
     BluetoothDevice(const QBluetoothDeviceInfo& device, QObject *parent = 0);
+    //! wrapper ctor to construct a BluetoothDevice from MAC and name
+    BluetoothDevice(const QString& mac, const QString& name, quint32 deviceClass, QObject *parent = 0);
     virtual ~BluetoothDevice();
 
     QString getBluetoothAddress() const;
     QString getDeviceName() const;
+    quint32 getDeviceType() const;
 
     void abortConnection();
     void connectToDevice();
@@ -58,6 +61,9 @@ private slots:
     void readyRead();
     void onError(QBluetoothSocket::SocketError error);
     void onStateChanged(QBluetoothSocket::SocketState state);
+
+    // connect signals and setup classes
+    void init();
 
 private:
     QBluetoothDeviceInfo m_device;
