@@ -91,6 +91,23 @@ void Pebble::sendDataToPebble(quint16 endPoint, const QByteArray &payload) const
     this->bt_device->sendData(finalData);
 }
 
+void Pebble::setTime() const
+{
+    QByteArray res;
+    QDateTime UTC(QDateTime::currentDateTimeUtc());
+    QDateTime local(UTC.toLocalTime());
+    local.setTimeSpec(Qt::UTC);
+    int offset = UTC.secsTo(local);
+    uint val = (local.toMSecsSinceEpoch() + offset) / 1000;
+
+    res.append(0x02); //SET_TIME_REQ
+    res.append((char)((val >> 24) & 0xff));
+    res.append((char)((val >> 16) & 0xff));
+    res.append((char)((val >> 8) & 0xff));
+    res.append((char)(val & 0xff));
+    sendDataToPebble(Enums::Endpoint::Time, res);
+}
+
 void Pebble::pingPebble(quint32 pingData) const {
     QByteArray bytes;
     QDataStream in(&bytes, QIODevice::WriteOnly);

@@ -26,6 +26,7 @@ public:
 
     void sendDataToPebble(quint16 endPoint, const QByteArray &payload) const;
 
+    void setTime() const;
     void pingPebble(quint32 pingData = 0) const;
     void notifyEmail(const QString &sender, const QString &subject, const QString &body) const;
     void notifySMS(const QString &sender, const QString &body) const;
