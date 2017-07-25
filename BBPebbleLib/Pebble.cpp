@@ -64,7 +64,8 @@ void Pebble::onDataReceived(QBluetoothSocket &bt_socket)
         } else if (message_length > 8 * 1024) {
             // Protocol does not allow messages more than 8K long, seemingly.
             qDebug() << "received message size too long: " << message_length;
-            bt_socket.readAll(); // drop entire input buffer
+            bt_socket.read(message_length); // skip the too big message and look for another header
+            QTimer::singleShot(0, this, SLOT(onDataReceived(bt_socket))); // check if there are additional headers.
             return;
         }
 
