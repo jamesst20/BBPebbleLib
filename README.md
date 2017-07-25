@@ -9,7 +9,8 @@ I am expecting (hopefully) to not be the only one to contribute to this project 
 * Communication with Pebble [DONE]
 * Connection Error Handling [DONE VIA SIGNALS]
 * Notifications for Mail/SMS/Facebook/Twitter [DONE]
-* Replying to Pebble’s first request (PhoneVersion) [Doesn’t seem to work yet…]
+* Replying to Pebble’s first request (PhoneVersion) [DONE]
+* Set the watch time [DONE]
 * Install/uninstall watchfaces
 * Install/uninstall applications
 * Get information of an application
