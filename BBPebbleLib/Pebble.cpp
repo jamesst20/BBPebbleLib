@@ -7,6 +7,7 @@
 
 #include <QtEndian>
 #include <QDateTime>
+#include <QTimer>
 
 #include "math.h"
 
@@ -45,7 +46,7 @@ void Pebble::onDataReceived(QBluetoothSocket &bt_socket)
 {
     static const int header_length = (int)2*sizeof(quint16);
 
-    while (bt_socket.bytesAvailable() >= header_length) {
+    if (bt_socket.bytesAvailable() >= header_length) {
         // Take a look at the header, but do not remove it from the socket input buffer.
         // We will only remove it once we're sure the entire packet is in the buffer.
         uchar header[header_length];
@@ -58,7 +59,8 @@ void Pebble::onDataReceived(QBluetoothSocket &bt_socket)
         if (message_length == 0) {
             qDebug() << "received empty message";
             bt_socket.read(header_length); // skip this header
-            continue; // check if there are additional headers.
+            QTimer::singleShot(0, this, SLOT(onDataReceived(bt_socket))); // check if there are additional headers.
+            return;
         } else if (message_length > 8 * 1024) {
             // Protocol does not allow messages more than 8K long, seemingly.
             qDebug() << "received message size too long: " << message_length;
