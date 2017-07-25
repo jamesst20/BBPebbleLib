@@ -52,8 +52,8 @@ void Pebble::onDataReceived(QBluetoothSocket &bt_socket)
         uchar header[s_header_length];
         bt_socket.peek(reinterpret_cast<char*>(header), s_header_length);
 
-        quint16 message_length = qFromBigEndian<quint16>(&header[0]);
-        quint16 endpoint = qFromBigEndian<quint16>(&header[2]);
+        const quint16 message_length = qFromBigEndian<quint16>(&header[0]);
+        const quint16 endpoint = qFromBigEndian<quint16>(&header[2]);
 
         // Sanity checks on the message_length
         if (message_length == 0) {
