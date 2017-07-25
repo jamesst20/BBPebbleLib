@@ -76,6 +76,7 @@ namespace Enums
         static const quint16 DataLog = 6778;
         static const quint16 SCREENSHOT = 8000;
         static const quint16 CoreDump = 9000;
+        static const quint16 BlobDB = 45531;
         static const quint16 PutBytes = 48879;
         static const quint16 MaxEndpoint = 65535; //quint16 max value
     }
@@ -109,7 +110,7 @@ namespace Enums
         static const quint8 Nack = 0x7F;
     }
 
-    namespace Notifications {
+    namespace NotificationTypes {
         static const quint8 Email = 0;
         static const quint8 SMS = 1;
         static const quint8 Facebook = 2;

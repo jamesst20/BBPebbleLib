@@ -5,6 +5,12 @@
  *      Author: James
  */
 
+#include <QtEndian>
+#include <QDateTime>
+#include <QTimer>
+
+#include "math.h"
+
 #include "Pebble.h"
 
 const quint8 Pebble::PEBBLE_CLIENT_VERSION = 2;
@@ -38,46 +44,88 @@ void Pebble::onDisconnect()
 
 void Pebble::onDataReceived(QBluetoothSocket &bt_socket)
 {
-    QDataStream in(&bt_socket);
+    static const qint64 s_header_length = (int)2*sizeof(quint16);
 
-    if (this->payloadSize == 0) {
-        if (bt_socket.bytesAvailable() < (int)2*sizeof(quint16)) {
+    if (bt_socket.bytesAvailable() >= s_header_length) {
+        // Take a look at the header, but do not remove it from the socket input buffer.
+        // We will only remove it once we're sure the entire packet is in the buffer.
+        uchar header[s_header_length];
+        bt_socket.peek(reinterpret_cast<char*>(header), s_header_length);
+
+        const quint16 message_length = qFromBigEndian<quint16>(&header[0]);
+        const quint16 endpoint = qFromBigEndian<quint16>(&header[2]);
+
+        // Sanity checks on the message_length
+        if (message_length == 0) {
+            qDebug() << "received empty message";
+            bt_socket.read(s_header_length); // skip this header
+            QTimer::singleShot(0, this, SLOT(onDataReceived(bt_socket))); // check if there are additional headers.
+            return;
+        } else if (message_length > 8 * 1024) {
+            // Protocol does not allow messages more than 8K long, seemingly.
+            qDebug() << "received message size too long: " << message_length;
+            bt_socket.read(message_length); // skip the too big message and look for another header
+            QTimer::singleShot(0, this, SLOT(onDataReceived(bt_socket))); // check if there are additional headers.
             return;
         }
-        in >> this->payloadSize;
-        in >> this->endPoint;
+
+        // Now wait for the entire message
+        if (bt_socket.bytesAvailable() < s_header_length + message_length) {
+            qDebug() << "incomplete msg body in read buffer";
+            return; // try again once more data comes in
+        }
+
+        // We can now safely remove the header from the input buffer,
+        // as we know the entire message is in the input buffer.
+        bt_socket.read(s_header_length);
+
+        // Now read the rest of the message
+        QByteArray data = bt_socket.read(message_length);
+
+        qDebug() << "<<<< received data. Endpoint : " << endpoint << " Payload Size : " << data.size() << " HEX : " << data.toHex() << "STR : " << QString(data);
+
+        emit onDataReadFinished(endpoint, data);
+
+        onDataReceived(bt_socket);
     }
-
-    if(bt_socket.bytesAvailable() < this->payloadSize){
-        return;
-    }
-    char buffer[this->payloadSize];
-    in.readRawData(buffer, this->payloadSize);
-    QByteArray payload(buffer);
-
-    qDebug() << "Received data. Endpoint : " << endPoint << " Payload Size : " << payloadSize << " HEX : " << payload.toHex() << "STR : " << QString(payload);
-
-    emit onDataReadFinished(endPoint, payload);
-
-    this->payloadSize = 0;
-    this->endPoint = 0;
-
-    onDataReceived(bt_socket);
 }
 
 void Pebble::onDataReadFinished(quint16 endPoint, const QByteArray &payload){
     //PhoneVersion is received immediatly after connecting to Pebble. We must respond to it first.
-    if(!pebbleReady && endPoint == Enums::Endpoint::PhoneVersion){
-        QByteArray payloadToSend;
-        QDataStream dataStream(&payloadToSend, QIODevice::WriteOnly);
-        dataStream << (quint8)PEBBLE_CLIENT_VERSION << (quint8)0xFF << (quint8)0xFF << (quint8)0xFF << (quint8)0xFF;
-        dataStream << (quint32) Enums::Session::GAMMA_RAY;
-        dataStream << (quint32) (Enums::Client::SMS | Enums::Client::TELEPHONY | Enums::Client::ANDROID);
+    if(!pebbleReady && endPoint == Enums::Endpoint::PhoneVersion) {
+        unsigned int sessionCap = Enums::Session::GAMMA_RAY;
+        unsigned int remoteCap = Enums::Client::TELEPHONY | Enums::Client::SMS | Enums::Client::ANDROID;
+        QByteArray res;
 
-        sendDataToPebble(Enums::Endpoint::PhoneVersion, payloadToSend);
+        //Prefix
+        res.append(0x01);
+        res.append(0xff);
+        res.append(0xff);
+        res.append(0xff);
+        res.append(0xff);
+
+        //Session Capabilities
+        res.append((char)((sessionCap >> 24) & 0xff));
+        res.append((char)((sessionCap >> 16) & 0xff));
+        res.append((char)((sessionCap >> 8) & 0xff));
+        res.append((char)(sessionCap & 0xff));
+
+        //Remote Capabilities
+        res.append((char)((remoteCap >> 24) & 0xff));
+        res.append((char)((remoteCap >> 16) & 0xff));
+        res.append((char)((remoteCap >> 8) & 0xff));
+        res.append((char)(remoteCap & 0xff));
+
+        //Version Magic
+        res.append((char)0x02);
+
+        //Append Version
+        res.append((char)0x02); //Major
+        res.append((char)0x00); //Minor
+        res.append((char)0x00); //Bugfix
+
+        sendDataToPebble(Enums::Endpoint::PhoneVersion, res);
         pebbleReady = true;
-        qDebug() << "Phone version asked, just replied. But does it really work?";
-
     }
 }
 
@@ -88,6 +136,9 @@ void Pebble::sendDataToPebble(quint16 endPoint, const QByteArray &payload) const
     in << (quint16)endPoint;
     finalData.append(payload);
     in.setByteOrder(QDataStream::BigEndian);
+
+    qDebug() << ">>>> sent data. Endpoint : " << endPoint << " Payload Size : " << payload.size() << " HEX : " << payload.toHex() << "STR : " << QString(payload);
+
     this->bt_device->sendData(finalData);
 }
 
@@ -102,25 +153,99 @@ void Pebble::pingPebble(quint32 pingData) const {
 void Pebble::notifyEmail(const QString &sender, const QString &subject, const QString &body) const {
     QStringList strings;
     strings << sender << body << subject;
-    sendNotification(Enums::Notifications::Email, strings);
+    sendNotification(Enums::NotificationTypes::Email, strings);
 }
 
 void Pebble::notifySMS(const QString &sender, const QString &body) const {
     QStringList strings;
     strings << sender << body;
-    sendNotification(Enums::Notifications::SMS, strings);
+    sendNotification(Enums::NotificationTypes::SMS, strings);
 }
 
 void Pebble::notifyFacebook(const QString &sender, const QString &body) const{
     QStringList strings;
     strings << sender << body;
-    sendNotification(Enums::Notifications::Facebook, strings);
+    sendNotification(Enums::NotificationTypes::Facebook, strings);
 }
 
 void Pebble::notifyTwitter(const QString &sender, const QString &body) const {
     QStringList strings;
     strings << sender << body;
-    sendNotification(Enums::Notifications::Twitter, strings);
+    sendNotification(Enums::NotificationTypes::Twitter, strings);
+}
+
+void Pebble::sendNewNotification(const QString& sender, const QString& subject, const QString& data) const
+{
+    // default source
+    int source = 1;
+
+    int attributesCount = 0;
+    QByteArray attributes;
+
+    attributesCount++;
+    QByteArray senderBytes = sender.left(64).toUtf8();
+    attributes.append(0x01); // id = title
+    attributes.append(senderBytes.length() & 0xFF); attributes.append(((senderBytes.length() >> 8) & 0xFF)); // length
+    attributes.append(senderBytes); // content
+
+    attributesCount++;
+    QByteArray subjectBytes = (subject.isEmpty() ? data : subject).left(64).toUtf8();
+    attributes.append(0x02); // id = subtitle
+    attributes.append(subjectBytes.length() & 0xFF); attributes.append((subjectBytes.length() >> 8) & 0xFF); // length
+    attributes.append(subjectBytes); //content
+
+    if (!data.isEmpty()) {
+        attributesCount++;
+        QByteArray dataBytes = data.left(512).toUtf8();
+        attributes.append(0x03); // id = body
+        attributes.append(dataBytes.length() & 0xFF); attributes.append((dataBytes.length() >> 8) & 0xFF); // length
+        attributes.append(dataBytes); // content
+    }
+
+    attributesCount++;
+    attributes.append(0x04); // id = tinyicon
+    attributes.append(0x04); attributes.append('\0'); // length
+    attributes.append(source); attributes.append('\0'); attributes.append('\0'); attributes.append('\0'); // content
+
+
+    QByteArray actions;
+    actions.append('\0'); // action id
+    actions.append(0x04); // type = dismiss
+    actions.append(0x01); // attributes length = 1
+    actions.append(0x01); // attribute id = title
+    actions.append(0x07); actions.append('\0'); // attribute length
+    actions.append("Dismiss"); // attribute content
+
+
+    QByteArray itemId = QUuid::createUuid().toRfc4122();
+    int time = QDateTime::currentMSecsSinceEpoch() / 1000;
+    QByteArray item;
+    item.append(itemId); // item id
+    item.append(QUuid().toRfc4122()); // parent id
+    item.append(time & 0xFF); item.append((time >> 8) & 0xFF); item.append((time >> 16) & 0xFF); item.append((time >> 24) & 0xFF); // timestamp
+    item.append('\0'); item.append('\0'); // duration
+    item.append(0x01); // type: notification
+    item.append('\0'); item.append('\0'); // flags
+    item.append(0x01); // layout
+
+    int length = attributes.length() + actions.length();
+    item.append(length & 0xFF); item.append((length >> 8) & 0xFF); // data length
+    item.append(attributesCount); // attributes count
+    item.append(0x01); // actions count
+    item.append(attributes);
+    item.append(actions);
+
+    int token = (qrand() % ((int)pow(2, 16) - 2)) + 1;
+    QByteArray blob;
+    blob.append(0x01); // command = insert
+    blob.append(token & 0xFF); blob.append((token >> 8) & 0xFF); // token
+    blob.append(0x04); //database id = notification
+    blob.append(itemId.length() & 0xFF); // key length
+    blob.append(itemId); // key
+    blob.append(item.length() & 0xFF); blob.append((item.length() >> 8) & 0xFF); // value length
+    blob.append(item);
+
+    sendDataToPebble(Enums::Endpoint::BlobDB, blob);
 }
 
 void Pebble::sendNotification(quint8 type, const QStringList &strings) const {

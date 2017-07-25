@@ -9,9 +9,19 @@ I am expecting (hopefully) to not be the only one to contribute to this project 
 * Communication with Pebble [DONE]
 * Connection Error Handling [DONE VIA SIGNALS]
 * Notifications for Mail/SMS/Facebook/Twitter [DONE]
-* Replying to Pebble’s first request (PhoneVersion) [Doesn’t seem to work yet…]
+* Replying to Pebble’s first request (PhoneVersion) [DONE]
+* Set the watch time [DONE]
 * Install/uninstall watchfaces
 * Install/uninstall applications
 * Get information of an application
 * Displaying Weather on a watchface
 * Much much much more
+
+### Related Work
+Thanks to all the other projects which achieved communication with the Pebble watch and inspired/helped this project, namely:
+* https://github.com/smokku/pebble
+* https://github.com/Hexxeh/libpebble
+* https://github.com/pebble/libpebble2
+* https://github.com/Keboo/PebbleSharp
+* https://github.com/DouweM/pebblewatch
+* https://github.com/barometz/flint
