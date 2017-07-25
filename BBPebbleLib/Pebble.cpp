@@ -153,25 +153,25 @@ void Pebble::pingPebble(quint32 pingData) const {
 void Pebble::notifyEmail(const QString &sender, const QString &subject, const QString &body) const {
     QStringList strings;
     strings << sender << body << subject;
-    sendNotification(Enums::Notifications::Email, strings);
+    sendNotification(Enums::NotificationTypes::Email, strings);
 }
 
 void Pebble::notifySMS(const QString &sender, const QString &body) const {
     QStringList strings;
     strings << sender << body;
-    sendNotification(Enums::Notifications::SMS, strings);
+    sendNotification(Enums::NotificationTypes::SMS, strings);
 }
 
 void Pebble::notifyFacebook(const QString &sender, const QString &body) const{
     QStringList strings;
     strings << sender << body;
-    sendNotification(Enums::Notifications::Facebook, strings);
+    sendNotification(Enums::NotificationTypes::Facebook, strings);
 }
 
 void Pebble::notifyTwitter(const QString &sender, const QString &body) const {
     QStringList strings;
     strings << sender << body;
-    sendNotification(Enums::Notifications::Twitter, strings);
+    sendNotification(Enums::NotificationTypes::Twitter, strings);
 }
 
 void Pebble::sendNewNotification(const QString& sender, const QString& subject, const QString& data) const

@@ -110,7 +110,7 @@ namespace Enums
         static const quint8 Nack = 0x7F;
     }
 
-    namespace Notifications {
+    namespace NotificationTypes {
         static const quint8 Email = 0;
         static const quint8 SMS = 1;
         static const quint8 Facebook = 2;
