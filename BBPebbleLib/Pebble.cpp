@@ -44,13 +44,13 @@ void Pebble::onDisconnect()
 
 void Pebble::onDataReceived(QBluetoothSocket &bt_socket)
 {
-    static const int header_length = (int)2*sizeof(quint16);
+    static const qint64 s_header_length = (int)2*sizeof(quint16);
 
-    if (bt_socket.bytesAvailable() >= header_length) {
+    if (bt_socket.bytesAvailable() >= s_header_length) {
         // Take a look at the header, but do not remove it from the socket input buffer.
         // We will only remove it once we're sure the entire packet is in the buffer.
-        uchar header[header_length];
-        bt_socket.peek(reinterpret_cast<char*>(header), header_length);
+        uchar header[s_header_length];
+        bt_socket.peek(reinterpret_cast<char*>(header), s_header_length);
 
         quint16 message_length = qFromBigEndian<quint16>(&header[0]);
         quint16 endpoint = qFromBigEndian<quint16>(&header[2]);
@@ -58,7 +58,7 @@ void Pebble::onDataReceived(QBluetoothSocket &bt_socket)
         // Sanity checks on the message_length
         if (message_length == 0) {
             qDebug() << "received empty message";
-            bt_socket.read(header_length); // skip this header
+            bt_socket.read(s_header_length); // skip this header
             QTimer::singleShot(0, this, SLOT(onDataReceived(bt_socket))); // check if there are additional headers.
             return;
         } else if (message_length > 8 * 1024) {
@@ -70,14 +70,14 @@ void Pebble::onDataReceived(QBluetoothSocket &bt_socket)
         }
 
         // Now wait for the entire message
-        if (bt_socket.bytesAvailable() < header_length + message_length) {
+        if (bt_socket.bytesAvailable() < s_header_length + message_length) {
             qDebug() << "incomplete msg body in read buffer";
             return; // try again once more data comes in
         }
 
         // We can now safely remove the header from the input buffer,
         // as we know the entire message is in the input buffer.
-        bt_socket.read(header_length);
+        bt_socket.read(s_header_length);
 
         // Now read the rest of the message
         QByteArray data = bt_socket.read(message_length);
