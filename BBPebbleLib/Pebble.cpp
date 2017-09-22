@@ -204,11 +204,13 @@ void Pebble::sendNewNotification(const QString& sender, const QString& subject, 
     attributes.append(senderBytes.length() & 0xFF); attributes.append(((senderBytes.length() >> 8) & 0xFF)); // length
     attributes.append(senderBytes); // content
 
-    attributesCount++;
-    QByteArray subjectBytes = (subject.isEmpty() ? data : subject).left(64).toUtf8();
-    attributes.append(0x02); // id = subtitle
-    attributes.append(subjectBytes.length() & 0xFF); attributes.append((subjectBytes.length() >> 8) & 0xFF); // length
-    attributes.append(subjectBytes); //content
+    if (!subject.isEmpty()) {
+        attributesCount++;
+        QByteArray subjectBytes = subject.left(64).toUtf8();
+        attributes.append(0x02); // id = subtitle
+        attributes.append(subjectBytes.length() & 0xFF); attributes.append((subjectBytes.length() >> 8) & 0xFF); // length
+        attributes.append(subjectBytes); //content
+    }
 
     if (!data.isEmpty()) {
         attributesCount++;
