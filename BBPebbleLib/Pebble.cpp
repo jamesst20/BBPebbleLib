@@ -87,7 +87,9 @@ void Pebble::onDataReceived(QBluetoothSocket &bt_socket)
     }
 }
 
-void Pebble::onDataReadFinished(quint16 endPoint, const QByteArray &payload){
+void Pebble::onDataReadFinished(quint16 endPoint, const QByteArray &payload) {
+    Q_UNUSED(payload);
+
     //PhoneVersion is received immediatly after connecting to Pebble. We must respond to it first.
     if(!pebbleReady && endPoint == Enums::Endpoint::PhoneVersion) {
         unsigned int sessionCap = Enums::Session::GAMMA_RAY;
