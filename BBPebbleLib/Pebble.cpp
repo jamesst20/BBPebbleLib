@@ -79,7 +79,7 @@ void Pebble::onDataReceived(QBluetoothSocket &bt_socket)
         // Now read the rest of the message
         QByteArray data = bt_socket.read(message_length);
 
-        qDebug() << "<<<< received data. Endpoint : " << endpoint << " Payload Size : " << data.size() << " HEX : " << data.toHex() << "STR : " << QString(data);
+        qDebug() << "<<<< recv data.\nEndpoint:" << endpoint << "\nPayload Size:" << data.size() << "\nHEX:" << data.toHex();
 
         emit onDataReadFinished(endpoint, data);
 
@@ -136,7 +136,7 @@ void Pebble::sendDataToPebble(quint16 endPoint, const QByteArray &payload) const
     finalData.append(payload);
     in.setByteOrder(QDataStream::BigEndian);
 
-    qDebug() << ">>>> sent data. Endpoint : " << endPoint << " Payload Size : " << payload.size() << " HEX : " << payload.toHex() << "STR : " << QString(payload);
+    qDebug() << ">>>> send data.\nEndpoint:" << endPoint << "\nPayload Size:" << payload.size() << "\nHEX:" << payload.toHex();
 
     this->bt_device->sendData(finalData);
 }
