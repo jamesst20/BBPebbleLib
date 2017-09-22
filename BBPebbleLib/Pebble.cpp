@@ -190,7 +190,7 @@ void Pebble::notifyTwitter(const QString &sender, const QString &body) const {
     sendNotification(Enums::Notifications::Twitter, strings);
 }
 
-void Pebble::sendNewNotification(const QString& sender, const QString& subject, const QString& data) const
+QByteArray Pebble::sendNewNotification(const QString& sender, const QString& subject, const QString& data) const
 {
     // default source
     int source = 1;
@@ -262,6 +262,22 @@ void Pebble::sendNewNotification(const QString& sender, const QString& subject, 
     blob.append(itemId); // key
     blob.append(item.length() & 0xFF); blob.append((item.length() >> 8) & 0xFF); // value length
     blob.append(item);
+
+    sendDataToPebble(Enums::Endpoint::BlobDB, blob);
+
+    return itemId;
+}
+
+void Pebble::deleteNewNotification(QByteArray itemId) const
+{
+    const int token = (qrand() % ((int)pow(2, 16) - 2)) + 1;
+
+    QByteArray blob;
+    blob.append(0x04); // command = delete
+    blob.append(token & 0xFF); blob.append((token >> 8) & 0xFF); // token
+    blob.append(0x04); //database id = notification
+    blob.append(itemId.length() & 0xFF); // key length
+    blob.append(itemId); // key
 
     sendDataToPebble(Enums::Endpoint::BlobDB, blob);
 }
