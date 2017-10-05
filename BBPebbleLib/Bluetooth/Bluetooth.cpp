@@ -7,16 +7,20 @@
 
 #include "Bluetooth.h"
 
-Bluetooth::Bluetooth(QObject *parent) : QObject(parent)
+Bluetooth::Bluetooth(QObject *parent)
+    : QObject(parent)
+    , m_agent(new QBluetoothDeviceDiscoveryAgent(this))
+    , m_discoveryRunning(false)
 {
 
-    m_agent = new QBluetoothDeviceDiscoveryAgent(this);
-
-    connect(m_agent, SIGNAL(finished()), this, SIGNAL(scanFinished()));
-    connect(m_agent, SIGNAL(canceled()), this, SIGNAL(scanFinished()));
-    connect(m_agent, SIGNAL(deviceDiscovered(const QBluetoothDeviceInfo&)), this, SLOT(onDiscovered(const QBluetoothDeviceInfo&)));
-    connect(m_agent, SIGNAL(error(QBluetoothDeviceDiscoveryAgent::Error)), this, SLOT(onError()));
-
+    bool bOk = connect(m_agent, SIGNAL(finished()), this, SLOT(discoveryFinished()), Qt::UniqueConnection);
+    Q_ASSERT(bOk);
+    bOk = connect(m_agent, SIGNAL(canceled()), this, SLOT(discoveryCanceled()), Qt::UniqueConnection);
+    Q_ASSERT(bOk);
+    bOk = connect(m_agent, SIGNAL(deviceDiscovered(const QBluetoothDeviceInfo&)), this, SLOT(onDiscovered(const QBluetoothDeviceInfo&)));
+    Q_ASSERT(bOk);
+    bOk = connect(m_agent, SIGNAL(error(QBluetoothDeviceDiscoveryAgent::Error)), this, SLOT(onError()));
+    Q_ASSERT(bOk);
 }
 
 Bluetooth::~Bluetooth()
@@ -26,6 +30,7 @@ Bluetooth::~Bluetooth()
 
 void Bluetooth::startDiscovery()
 {
+    m_discoveryRunning = true;
     m_agent->start();
 }
 
@@ -41,5 +46,20 @@ void Bluetooth::stopDiscovery()
 
 void Bluetooth::onError()
 {
+    m_discoveryRunning = false;
     emit error(m_agent->errorString());
+}
+
+void Bluetooth::discoveryFinished()
+{
+    if(m_discoveryRunning)
+    {
+        m_discoveryRunning = false;
+        emit scanFinished();
+    }
+}
+void Bluetooth::discoveryCanceled()
+{
+    m_discoveryRunning = false;
+    emit scanFinished();
 }

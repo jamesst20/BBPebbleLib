@@ -26,7 +26,11 @@ public:
 
     void sendDataToPebble(quint16 endPoint, const QByteArray &payload) const;
 
+    void setTime() const;
     void pingPebble(quint32 pingData = 0) const;
+    //! return item id for BlobDB
+    QByteArray sendNewNotification(const QString& sender, const QString& subject, const QString& data) const;
+    void deleteNewNotification(QByteArray itemId) const;
     void notifyEmail(const QString &sender, const QString &subject, const QString &body) const;
     void notifySMS(const QString &sender, const QString &body) const;
     void notifyFacebook(const QString &sender, const QString &body) const;

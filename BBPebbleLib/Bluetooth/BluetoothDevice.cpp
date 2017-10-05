@@ -5,12 +5,34 @@
  *      Author: James
  */
 
+#include <QtConnectivity/QBluetoothAddress>
+
 #include "BluetoothDevice.h"
 
-BluetoothDevice::BluetoothDevice(const QBluetoothDeviceInfo& device, QObject *parent) : QObject(parent)
-{
-    this->m_device = device;
 
+BluetoothDevice::BluetoothDevice(const QBluetoothDeviceInfo& device, QObject *parent)
+    : QObject(parent)
+    , m_device(device)
+{
+    init();
+}
+
+BluetoothDevice::BluetoothDevice(const QString& mac, const QString& name, quint32 deviceClass, QObject *parent)
+    :QObject(parent)
+{
+    m_device = QBluetoothDeviceInfo(QtMobility::QBluetoothAddress(mac), name, deviceClass);
+
+    init();
+}
+
+BluetoothDevice::~BluetoothDevice()
+{
+
+}
+
+void BluetoothDevice::init()
+{
+    disconnect(&m_socket);
     connect(&m_socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
     connect(&m_socket, SIGNAL(connected()), this, SIGNAL(connected()));
     connect(&m_socket, SIGNAL(disconnected()), this, SIGNAL(disconnected()));
@@ -18,11 +40,6 @@ BluetoothDevice::BluetoothDevice(const QBluetoothDeviceInfo& device, QObject *pa
     connect(&m_socket, SIGNAL(aboutToClose()), this, SIGNAL(aboutToClose()));
     connect(&m_socket, SIGNAL(error(QBluetoothSocket::SocketError)), this, SLOT(onError(QBluetoothSocket::SocketError)));
     connect(&m_socket, SIGNAL(stateChanged(QBluetoothSocket::SocketState)), this, SLOT(onStateChanged(QBluetoothSocket::SocketState)));
-}
-
-BluetoothDevice::~BluetoothDevice()
-{
-
 }
 
 QString BluetoothDevice::getBluetoothAddress() const
@@ -33,6 +50,11 @@ QString BluetoothDevice::getBluetoothAddress() const
 QString BluetoothDevice::getDeviceName() const
 {
     return this->m_device.name();
+}
+
+quint32 BluetoothDevice::getDeviceType() const
+{
+    return this->m_device.majorDeviceClass();
 }
 
 void BluetoothDevice::abortConnection(){
