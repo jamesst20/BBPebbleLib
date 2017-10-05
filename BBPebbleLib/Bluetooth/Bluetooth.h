@@ -49,9 +49,12 @@ public slots:
 private slots:
     void onDiscovered(const QBluetoothDeviceInfo& info);
     void onError();
+    void discoveryFinished();
+    void discoveryCanceled();
 
 private:
     QBluetoothDeviceDiscoveryAgent* m_agent;
+    volatile bool m_discoveryRunning;
 };
 
 #endif /* BLUETOOTH_H_ */

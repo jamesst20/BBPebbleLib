@@ -32,6 +32,7 @@ BluetoothDevice::~BluetoothDevice()
 
 void BluetoothDevice::init()
 {
+    disconnect(&m_socket);
     connect(&m_socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
     connect(&m_socket, SIGNAL(connected()), this, SIGNAL(connected()));
     connect(&m_socket, SIGNAL(disconnected()), this, SIGNAL(disconnected()));
